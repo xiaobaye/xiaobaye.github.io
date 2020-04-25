@@ -84,13 +84,23 @@ document.ready(
 
         // ready function.
 
-            [].slice.call(document.querySelectorAll('table')).forEach(function(el){
-    var wrapper = document.createElement('div');
-    wrapper.className = 'table-area';
-    el.parentNode.insertBefore(wrapper, el);
-    el.parentNode.removeChild(el);
-    wrapper.appendChild(el);
+        [].slice.call(document.querySelectorAll('table')).forEach(function(el){
+        	if(el.parentNode.nodeName !== 'FIGURE' && el.parentNode.nodeName !== 'figure' ){
+			    var wrapper = document.createElement('div');
+			    wrapper.className = 'table-area';
+			    el.parentNode.insertBefore(wrapper, el);
+			    el.parentNode.removeChild(el);
+			    wrapper.appendChild(el);
+        	}
         })
+
+      //   [].slice.call(document.querySelectorAll('table')).forEach(function(el){
+		    // var wrapper = document.createElement('figure');
+		    // wrapper.className = 'highlight plain';
+		    // el.parentNode.insertBefore(wrapper, el);
+		    // el.parentNode.removeChild(el);
+		    // wrapper.appendChild(el);
+	     //    })
     }
     
 );
