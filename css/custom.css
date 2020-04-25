@@ -3,25 +3,3 @@
   text-decoration: none;
   overflow: hidden;
 }
-.archive-item-link:hover {
-  color: $light-global-link-hover-color;
-  background-color: transparent;
-}
-.dark-theme .archive-item-link {
-  color: $dark-global-link-color;
-  text-decoration: none;
-  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease, opacity 0.2s ease;
-}
-.dark-theme .archive-item-link:hover {
-  color: $dark-global-link-hover-color;
-  text-decoration: none;
-  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease, opacity 0.2s ease;
-}
-.archive-item-date {
-  float: right;
-  text-align: right;
-  color: $light-font-secondary-color;
-}
-.dark-theme .archive-item-date {
-  color: $dark-font-secondary-color;
-}
