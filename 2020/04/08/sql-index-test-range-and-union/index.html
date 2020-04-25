@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="xiao 丿丶">
+
+
+
+
+
+<title>MySQL中范围索引和联合索引在日期查询时的效率对比 | Vigor</title>
+
+
+
+    <link rel="icon" href="/xiaobaye.github.io/favicon.ico">
+
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/xiaobaye.github.io/css/style.css">
+    
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/xiaobaye.github.io/js/script.js"></script>
+    
+    <script src="/xiaobaye.github.io/js/tocbot.min.js"></script>
+    
+
+
+
+    
+    
+        
+    
+
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+<body>
+    <div class="wrapper">
+        <header>
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-header header-logo"><a href="/xiaobaye.github.io/">xiao丿丶&#39;s Blog</a></div>
+            <div class="menu navbar-right">
+                
+                    <a class="menu-item" href="/xiaobaye.github.io/archives">Posts</a>
+                
+                    <a class="menu-item" href="/xiaobaye.github.io/category">Categories</a>
+                
+                    <a class="menu-item" href="/xiaobaye.github.io/tag">Tags</a>
+                
+                    <a class="menu-item" href="/xiaobaye.github.io/about">About</a>
+                
+                <input id="switch_default" type="checkbox" class="switch_default">
+                <label for="switch_default" class="toggleBtn"></label>
+            </div>
+        </div>
+    </nav>
+
+    
+    <nav class="navbar-mobile" id="nav-mobile">
+        <div class="container">
+            <div class="navbar-header">
+                <div>
+                    <a href="/xiaobaye.github.io/">xiao丿丶&#39;s Blog</a><a id="mobile-toggle-theme">·&nbsp;Light</a>
+                </div>
+                <div class="menu-toggle" onclick="mobileBtn()">&#9776; Menu</div>
+            </div>
+            <div class="menu" id="mobile-menu">
+                
+                    <a class="menu-item" href="/xiaobaye.github.io/archives">Posts</a>
+                
+                    <a class="menu-item" href="/xiaobaye.github.io/category">Categories</a>
+                
+                    <a class="menu-item" href="/xiaobaye.github.io/tag">Tags</a>
+                
+                    <a class="menu-item" href="/xiaobaye.github.io/about">About</a>
+                
+            </div>
+        </div>
+    </nav>
+
+</header>
+<script>
+    var mobileBtn = function f() {
+        var toggleMenu = document.getElementsByClassName("menu-toggle")[0];
+        var mobileMenu = document.getElementById("mobile-menu");
+        if(toggleMenu.classList.contains("active")){
+           toggleMenu.classList.remove("active")
+            mobileMenu.classList.remove("active")
+        }else{
+            toggleMenu.classList.add("active")
+            mobileMenu.classList.add("active")
+        }
+    }
+</script>
+        <div class="main">
+            <div class="container">
+    
+    
+        <div class="post-toc">
+    <div class="tocbot-list">
+    </div>
+    <div class="tocbot-list-menu">
+        <a class="tocbot-toc-expand" onclick="expand_toc()">Expand all</a>
+        <a onclick="go_top()">Back to top</a>
+        <a onclick="go_bottom()">Go to bottom</a>
+    </div>
+</div>
+
+<script>
+    document.ready(
+        function () {
+            tocbot.init({
+                tocSelector: '.tocbot-list',
+                contentSelector: '.post-content',
+                headingSelector: 'h1, h2, h3, h4, h5',
+                collapseDepth: 1,
+                orderedList: false,
+                scrollSmooth: true,
+            })
+        }
+    )
+
+    function expand_toc() {
+        var b = document.querySelector(".tocbot-toc-expand");
+        tocbot.init({
+            tocSelector: '.tocbot-list',
+            contentSelector: '.post-content',
+            headingSelector: 'h1, h2, h3, h4, h5',
+            collapseDepth: 6,
+            orderedList: false,
+            scrollSmooth: true,
+        });
+        b.setAttribute("onclick", "collapse_toc()");
+        b.innerHTML = "Collapse all"
+    }
+
+    function collapse_toc() {
+        var b = document.querySelector(".tocbot-toc-expand");
+        tocbot.init({
+            tocSelector: '.tocbot-list',
+            contentSelector: '.post-content',
+            headingSelector: 'h1, h2, h3, h4, h5',
+            collapseDepth: 1,
+            orderedList: false,
+            scrollSmooth: true,
+        });
+        b.setAttribute("onclick", "expand_toc()");
+        b.innerHTML = "Expand all"
+    }
+
+    function go_top() {
+        window.scrollTo(0, 0);
+    }
+
+    function go_bottom() {
+        window.scrollTo(0, document.body.scrollHeight);
+    }
+
+</script>
+    
+
+    
+    <article class="post-wrap">
+        <header class="post-header">
+            <h1 class="post-title">MySQL中范围索引和联合索引在日期查询时的效率对比</h1>
+            
+                <div class="post-meta">
+                    
+                        Author: <a itemprop="author" rel="author" href="/">xiao 丿丶</a>
+                    
+
+                    
+                        <span class="post-time">
+                        Date: <a href="#">April 8, 2020&nbsp;&nbsp;11:14:46</a>
+                        </span>
+                    
+                    
+                        <span class="post-category">
+                    Category:
+                            
+                                <a href="/xiaobaye.github.io/categories/%E6%97%A9%E6%9C%9F/">早期</a>
+                            
+                                <a href="/xiaobaye.github.io/categories/%E6%97%A9%E6%9C%9F/%E5%AE%9E%E8%B7%B5/">实践</a>
+                            
+                        </span>
+                    
+                </div>
+            
+        </header>
+
+        <div class="post-content">
+            <h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><p>问题来源：做一个按年月进行记录的范围查询。</p>
+<p>想到可以做按年月字段（年月日）的联合索引，或者直接使用时间戳进行字段范围查询，但是两者除了存储开销上面的区别外，查询时间上有什么区别吗？</p>
+<hr>
+<p>tip：使用数据库MySQL8.0.19</p>
+<h1 id="建表"><a href="#建表" class="headerlink" title="建表"></a>建表</h1><p>直接上表结构与索引：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">CREATE TABLE &#96;love_record&#96; (</span><br><span class="line">  &#96;id&#96; int NOT NULL AUTO_INCREMENT,</span><br><span class="line">  &#96;year&#96; int DEFAULT NULL,</span><br><span class="line">  &#96;month&#96; int DEFAULT NULL,</span><br><span class="line">  &#96;day&#96; int DEFAULT NULL,</span><br><span class="line">  &#96;log_date&#96; timestamp NULL DEFAULT NULL,</span><br><span class="line">  PRIMARY KEY (&#96;id&#96;),</span><br><span class="line">  KEY &#96;year_month_day&#96; (&#96;year&#96;,&#96;month&#96;,&#96;day&#96;) USING BTREE,</span><br><span class="line">  KEY &#96;date_time&#96; (&#96;log_date&#96;) USING BTREE</span><br><span class="line">) ENGINE&#x3D;InnoDB DEFAULT CHARSET&#x3D;utf8 COLLATE&#x3D;utf8_bin;</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li>记录表，自增id，年，月，日字段以及时间戳字段</li>
+<li>设置年月日的联合索引</li>
+<li>设置时间戳的索引</li>
+</ol>
+<h1 id="模拟数据"><a href="#模拟数据" class="headerlink" title="模拟数据"></a>模拟数据</h1><p>存储过程插入数据（结束后总共982657条数据，暂时当做是百万级吧）</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">DROP PROCEDURE IF EXISTS proc_initData;--如果存在此存储过程则删掉</span><br><span class="line">DELIMITER $</span><br><span class="line">CREATE PROCEDURE proc_initData()</span><br><span class="line">BEGIN</span><br><span class="line">    DECLARE i INT DEFAULT 1;</span><br><span class="line">		DECLARE date1 TIMESTAMP ;</span><br><span class="line">		set date1 &#x3D; &#39;1982-01-01 11:11:11&#39;;</span><br><span class="line">		#set date1 &#x3D; NOW();</span><br><span class="line">    WHILE i&lt;&#x3D;1000000 DO</span><br><span class="line">        INSERT INTO love_record(&#96;year&#96;,&#96;month&#96;,&#96;day&#96;,log_date) VALUES(SUBSTR(date1,1,4),SUBSTR(date1,6,2),SUBSTR(date1,9,2),date1);</span><br><span class="line">        SET i &#x3D; i+1;</span><br><span class="line">				SET date1 &#x3D; ADDDATE(date1,INTERVAL 30 MINUTE);</span><br><span class="line">    END WHILE;</span><br><span class="line">END $</span><br><span class="line">CALL proc_initData();</span><br></pre></td></tr></table></figure>
+
+<h1 id="查询对比"><a href="#查询对比" class="headerlink" title="查询对比"></a>查询对比</h1><p>主要使用EXPLAIN 语句，SHOW PROFILE，SHOW STATUS</p>
+<p>先上结果图：</p>
+<p><img src="1_time_comparison.png" alt=""></p>
+<ul>
+<li><p>查询范围为年</p>
+<ul>
+<li><p>年月日联合索引查询</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EXPLAIN SELECT * FROM &#96;love_record&#96; WHERE &#96;love_record&#96;.&#96;year&#96; &#x3D; 2020;</span><br></pre></td></tr></table></figure>
+
+<p>解释结果：</p>
+<table>
+<thead>
+<tr>
+<th align="center">id</th>
+<th>select_type</th>
+<th>table</th>
+<th>partitions</th>
+<th>type</th>
+<th>possible_keys</th>
+<th>key</th>
+<th>key_len</th>
+<th>ref</th>
+<th>rows</th>
+<th>filtered</th>
+<th>Extra</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">1</td>
+<td>SIMPLE</td>
+<td>love_record</td>
+<td>-</td>
+<td><strong>ref</strong></td>
+<td>year_month_day</td>
+<td>year_month_day</td>
+<td>5</td>
+<td>const</td>
+<td><strong>34310</strong></td>
+<td>100.00</td>
+<td>-</td>
+</tr>
+</tbody></table>
+</li>
+<li><p>时间戳范围查询</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EXPLAIN SELECT * FROM &#96;love_record&#96; WHERE &#96;love_record&#96;.log_date &lt; &#39;2021-01-01&#39; and &#96;love_record&#96;.log_date &gt;&#x3D; &#39;2020-01-01&#39;;</span><br></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">解释结果：</span><br><span class="line">  </span><br><span class="line">|  id  | select_type | table       | partitions | type      | possible_keys | key       | key_len | ref   | rows      | filtered | Extra                            |</span><br><span class="line">| :--: | ----------- | ----------- | ---------- | --------- | ------------- | --------- | ------- | ----- | --------- | -------- | -------------------------------- |</span><br><span class="line">|  1   | SIMPLE      | love_record | -          | **range** | date_time     | date_time | 5       | const | **33504** | 100.00   | Using index condition; Using MRR |</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+</li>
+<li><p>查询范围为月</p>
+<ul>
+<li><p>年月日联合索引查询</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EXPLAIN SELECT * FROM &#96;love_record&#96; WHERE &#96;love_record&#96;.&#96;year&#96; &#x3D; 2020 and &#96;love_record&#96;.&#96;month&#96; &#x3D; 4;</span><br></pre></td></tr></table></figure>
+
+<p>解释结果：</p>
+<table>
+<thead>
+<tr>
+<th align="center">id</th>
+<th>select_type</th>
+<th>table</th>
+<th>partitions</th>
+<th>type</th>
+<th>possible_keys</th>
+<th>key</th>
+<th>key_len</th>
+<th>ref</th>
+<th>rows</th>
+<th>filtered</th>
+<th>Extra</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">1</td>
+<td>SIMPLE</td>
+<td>love_record</td>
+<td>-</td>
+<td><strong>ref</strong></td>
+<td>year_month_day</td>
+<td>year_month_day</td>
+<td><strong>10</strong></td>
+<td><strong>const,const</strong></td>
+<td>1440</td>
+<td>100.00</td>
+<td>-</td>
+</tr>
+</tbody></table>
+</li>
+<li><p>时间戳范围查询</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EXPLAIN SELECT * FROM &#96;love_record&#96; WHERE &#96;love_record&#96;.log_date &lt; &#39;2020-05-01&#39; and &#96;love_record&#96;.log_date &gt;&#x3D; &#39;2020-04-01&#39;;</span><br></pre></td></tr></table></figure>
+
+<p>解释结果：</p>
+<table>
+<thead>
+<tr>
+<th align="center">id</th>
+<th>select_type</th>
+<th>table</th>
+<th>partitions</th>
+<th>type</th>
+<th>possible_keys</th>
+<th>key</th>
+<th>key_len</th>
+<th>ref</th>
+<th>rows</th>
+<th>filtered</th>
+<th>Extra</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">1</td>
+<td>SIMPLE</td>
+<td>love_record</td>
+<td>-</td>
+<td><strong>range</strong></td>
+<td>date_time</td>
+<td>date_time</td>
+<td><strong>5</strong></td>
+<td>-</td>
+<td>1440</td>
+<td>100.00</td>
+<td>Using index condition; Using MRR</td>
+</tr>
+</tbody></table>
+</li>
+</ul>
+</li>
+<li><p>查询范围为日</p>
+<ul>
+<li><p>年月日联合索引查询</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EXPLAIN SELECT * FROM &#96;love_record&#96; WHERE &#96;love_record&#96;.&#96;year&#96; &#x3D; 2020 and &#96;love_record&#96;.&#96;month&#96; &#x3D; 4 and &#96;love_record&#96;.&#96;day&#96; &#x3D; 4;</span><br></pre></td></tr></table></figure>
+
+<p>解释结果：</p>
+<table>
+<thead>
+<tr>
+<th align="center">id</th>
+<th>select_type</th>
+<th>table</th>
+<th>partitions</th>
+<th>type</th>
+<th>possible_keys</th>
+<th>key</th>
+<th>key_len</th>
+<th>ref</th>
+<th>rows</th>
+<th>filtered</th>
+<th>Extra</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">1</td>
+<td>SIMPLE</td>
+<td>love_record</td>
+<td>-</td>
+<td><strong>ref</strong></td>
+<td>year_month_day</td>
+<td>year_month_day</td>
+<td>15</td>
+<td>const,const,const</td>
+<td>48</td>
+<td>100.00</td>
+<td>-</td>
+</tr>
+</tbody></table>
+</li>
+<li><p>时间戳范围查询</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EXPLAIN SELECT * FROM &#96;love_record&#96; WHERE &#96;love_record&#96;.log_date &lt; &#39;2020-04-05&#39; and &#96;love_record&#96;.log_date &gt;&#x3D; &#39;2020-04-04&#39;;</span><br></pre></td></tr></table></figure>
+
+<p>解释结果：</p>
+<table>
+<thead>
+<tr>
+<th align="center">id</th>
+<th>select_type</th>
+<th>table</th>
+<th>partitions</th>
+<th>type</th>
+<th>possible_keys</th>
+<th>key</th>
+<th>key_len</th>
+<th>ref</th>
+<th>rows</th>
+<th>filtered</th>
+<th>Extra</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">1</td>
+<td>SIMPLE</td>
+<td>love_record</td>
+<td>-</td>
+<td><strong>range</strong></td>
+<td>date_time</td>
+<td>date_time</td>
+<td>5</td>
+<td>-</td>
+<td>48</td>
+<td>100.00</td>
+<td>Using index condition</td>
+</tr>
+</tbody></table>
+</li>
+</ul>
+</li>
+</ul>
+<p>注意到范围查询在进行年和月范围的时候，会用到MRR，MRR全称是Multi-Range Read，是MYSQL5.6优化器的一个新特性。会将非索引覆盖的情况第一次进行主键时，查询到结果集放在buffer中，然后对结果集按照主键进行排序（主要区别），然后再进行回表操作，从而将随机IO转换为顺序IO，减少磁盘随机IO和减少主键索引的访问次数（大约减少为之前次数/buffer_size）。</p>
+<blockquote>
+<p>可参考：<a href="https://zhuanlan.zhihu.com/p/110154066" target="_blank" rel="noopener">MySQL 的 MRR 到底是什么？</a></p>
+</blockquote>
+<h1 id="未完待续…"><a href="#未完待续…" class="headerlink" title="未完待续…"></a>未完待续…</h1><p>虽然EXPLAIN语句分析中联合索引的查询类型是ref，范围查询的类型是range，通常情况下ref是快于range，实验也验证了，待续。。。</p>
+<style>.table-area {
+    overflow: auto;
+}</style>
+        </div>
+
+        
+            <section class="post-copyright">
+                
+                    <p class="copyright-item">
+                        <span>Author:</span>
+                        <span>xiao 丿丶</span>
+                    </p>
+                
+                
+                    <p class="copyright-item">
+                        <span>Permalink:</span>
+                        <span><a href="https://github.com/xiaobaye/2020/04/08/sql-index-test-range-and-union/">https://github.com/xiaobaye/2020/04/08/sql-index-test-range-and-union/</a></span>
+                    </p>
+                
+                
+                    <p class="copyright-item">
+                        <span>License:</span>
+                        <span>Copyright (c) 2019 <a href="http://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noopener">CC-BY-NC-4.0</a> LICENSE</span>
+                    </p>
+                
+                
+                     <p class="copyright-item">
+                         <span>Slogan:</span>
+                         <span>You still have lots more to work on.</span>
+                     </p>
+                
+
+            </section>
+        
+        <section class="post-tags">
+            <div>
+                <span>Tag(s):</span>
+                <span class="tag">
+                    
+                    
+                        <a href="/xiaobaye.github.io/tags/SQL/"># SQL</a>
+                    
+                        
+                </span>
+            </div>
+            <div>
+                <a href="javascript:window.history.back();">back</a>
+                <span>· </span>
+                <a href="/xiaobaye.github.io/">home</a>
+            </div>
+        </section>
+        <section class="post-nav">
+            
+            
+            <a class="next" rel="next" href="/xiaobaye.github.io/2020/02/03/java-abstract-class-interface/">java-抽象类与接口</a>
+            
+        </section>
+
+
+    </article>
+</div>
+
+        </div>
+        <footer id="footer" class="footer">
+    <div class="copyright">
+        <span>© xiao 丿丶 | Powered by <a href="https://hexo.io" target="_blank">Hexo</a> & <a href="https://github.com/Siricee/hexo-theme-Chic" target="_blank">Chic</a></span>
+    </div>
+</footer>
+
+    </div>
+</body>
+</html>
